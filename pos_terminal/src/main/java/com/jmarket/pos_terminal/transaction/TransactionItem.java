@@ -1,24 +1,22 @@
 package com.jmarket.pos_terminal.transaction;
 
+import java.util.UUID;
+
 public class TransactionItem {
     private String itemId;
     private String itemName;
     private double itemPrice;
     private int quantity;
 
-    public TransactionItem(String itemId, String itemName, double itemPrice, int quantity) {
-        this.itemId = itemId;
+    public TransactionItem(String itemName, double itemPrice, int quantity) {
+        this.itemId = generateUuid();
         this.itemName = itemName;
         this.itemPrice = itemPrice;
         this.quantity = quantity;
     }
 
-    public String getItemId() {
-        return itemId;
-    }
-
-    public void setItemId(String itemId) {
-        this.itemId = itemId;
+    private String generateUuid() {
+        return UUID.randomUUID().toString();
     }
 
     public String getItemName() {
