@@ -1,0 +1,179 @@
+version: '3.8'
+
+services:
+
+  admin:
+    image: openjdk:21-jdk
+    container_name: admin
+    working_dir: /admin
+    command: ["./mvnw", "spring-boot:run"]
+    ports:
+      - "8085:8080"
+    networks:
+      - mynetwork
+    volumes:
+      - ./admin:/admin
+      - ./data:/data
+    depends_on:
+      customers-db:
+        condition: service_healthy
+      orders-db:
+        condition: service_healthy
+      inventory-db:
+        condition: service_healthy
+      invoices-db:
+        condition: service_healthy
+    restart: on-failure
+
+  inventory-manager:
+    image: openjdk:21-jdk
+    container_name: inventory-manager
+    working_dir: /inventory-manager
+    command: ["./mvnw", "spring-boot:run"]
+    ports:
+      - "8082:8080"
+    volumes:
+      - ./data:/data
+      - ./inventory-manager:/inventory-manager
+    networks:
+      - mynetwork
+    depends_on:
+      inventory-db:
+        condition: service_healthy
+    restart: on-failure
+
+  orders-processor:
+    image: openjdk:21-jdk
+    container_name: orders-processor
+    working_dir: /orders-processor
+    command: ["./mvnw", "spring-boot:run"]
+    ports:
+      - "8081:8080"
+    volumes:
+      - ./data:/data
+      - ./orders-processor:/orders-processor
+    networks:
+      - mynetwork
+    depends_on:
+      - orders-db
+      - inventory-manager
+    restart: on-failure
+
+  customer-manager:
+    image: openjdk:21-jdk
+    container_name: customer-manager
+    working_dir: /customer-manager
+    command: ["./mvnw", "spring-boot:run"]
+    ports:
+      - "8083:8080"
+    networks:
+      - mynetwork
+    volumes:
+      - ./customer-manager:/customer-manager
+      - ./data:/data
+    depends_on:
+      customers-db:
+        condition: service_healthy
+    restart: on-failure
+
+  pos-terminal:
+    image: openjdk:21-jdk
+    container_name: pos-terminal
+    working_dir: /pos-terminal
+    command: ["./mvnw", "spring-boot:run"]
+    ports:
+      - "8080:8080"
+    networks:
+      - mynetwork
+    volumes:
+      - ./pos-terminal:/pos-terminal
+      - ./data:/data
+    depends_on:
+      - customer-manager
+      - orders-processor
+
+  customers-db:
+    image: postgres:15
+    container_name: customers-db
+    environment:
+      POSTGRES_DB: customers_db
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5433:5432"
+    volumes:
+      - customers-db-data:/var/lib/postgresql/data
+    networks:
+      - mynetwork
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d customers_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    
+  orders-db:
+    image: postgres:15
+    container_name: orders-db
+    environment:
+      POSTGRES_DB: orders_db
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5434:5432"
+    volumes:
+      - orders-db-data:/var/lib/postgresql/data
+    networks:
+      - mynetwork
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d orders_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  inventory-db:
+    image: postgres:15
+    container_name: inventory-db
+    environment:
+      POSTGRES_DB: inventory_db
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5435:5432"
+    volumes:
+      - inventory-db-data:/var/lib/postgresql/data
+    networks:
+      - mynetwork
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d inventory_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  invoices-db:
+    image: postgres:15
+    container_name: invoices-db
+    environment:
+      POSTGRES_DB: invoices_db
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5436:5432"
+    volumes:
+      - invoices-db-data:/var/lib/postgresql/data
+    networks:
+      - mynetwork
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d invoices_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+networks:
+  mynetwork:
+    driver: bridge
+
+volumes:
+  customers-db-data:
+  orders-db-data:
+  inventory-db-data:
+  invoices-db-data:
