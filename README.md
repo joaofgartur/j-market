@@ -2,27 +2,86 @@
 
 ## Overview
 
-Hi, welcome to the jMarket! This is an experimental project where I try out different concepts and technologies to refresh my knowledge on Java and related frameworks, e.g. SpringBoot. To make things interesting, I thought I would throw in the mix messaging and distributed systems. 
+Hi, welcome to the jMarket! This is an experimental project where I try out different concepts and technologies to refresh my knowledge on Java and related frameworks, e.g. SpringBoot. To make things interesting, I thought I would throw in the mix messaging and distributed systems.
+
+jMarket simulates a shop environment where customer orders are placed via POS terminals and processed asynchronously. Rather than fulfilling orders immediately, the system places each order into a processing queue. This queue represents a simplified version of a real-world fulfillment system.
+
+If the required stock is not available when an order is being processed, the order is requeued for later processing. Simultaneously, the system logs the missing stock as a supply request. At some point, external events (e.g., simulated restocking) will deliver additional inventory, which in turn triggers another attempt to process previously blocked orders.
 
 If you have any ideas that you think could be an good addition to the project or suggestions on how I could have done something differently, feel free to reach out! I'm always to explore new things and improve my skills!
 
-## Project Idea
+## Simulation Behaviour
 
-### Base features
+1. Orders are accepted immediately and placed into a queue.
 
-The base idea of this project is to simulate a supermarket store that consists of a cluster of point-of-sale Terminals (POS) and a back-office (BO) that receives transaction data from each POS.
+2. Orders are processed asynchronously.
 
-Each terminal has the defined responsability of generating checkout transactions. A transaction is a list of items, with their respective prices and quantities. After the checkout, the transaction data is sent to the back-office.
+3. If an order cannot be fulfilled, it is:
+    
+    a) Marked as "waiting for stock"
+    
+    b) Returned to the order queue
+    
+    c) Triggers an entry in the missing stock registry
 
-The back-office acts as a local cluster manager. It is responsible for receiving and storing the transaction receipts sent from its POS terminals. At the end of the day, the back-office aggregates all the transactions received during that day and generates a daily sales report.
+4. A restock event occurs randomly or via manual trigger.
 
-### Advanced features
+5. Once items are restocked, blocked orders are retried automatically.
 
-A local inventory system (LIS) is introduced at the supermarket store to manage the inventory. A transaction can only be generated if compliant with the existing inventory.
+## Use Cases
 
-The supermarket store revealed itself to be very profitable, allowing the business to expand to more stores. To facilitate chain management, a central inventory system (CIS) is created. This entity receives the daily sales reports as well as the inventory list of each store. Based on this information, CIS determines restocking needs per item/store to send to each store.
+### 1. Place Order via POS (Queued Processing)
+A customer places an order via a POS terminal. The system accepts the order immediately, regardless of stock, and queues it for background processing.
 
-Another advanced feature is to introduce a admin monitoring dashboard to visualize the transactions per POS or per cluster. 
+### 2. Asynchronous Order Fulfillment
+A background processor continuously checks the order queue. When processing an order:
+
+ - If all items are in stock → the order is fulfilled
+
+ - If any item is missing → the order is requeued and flagged
+
+### 3. Missing Stock Registration
+Whenever an order fails due to lack of stock, the system:
+ 
+ - Records what was missing (item + quantity)
+
+ - Tracks how many orders are blocked by that shortage
+
+### 4. Restock Event (Simulated or Manual)
+A restocking event supplies new stock to the system. This can happen:
+
+ - Automatically (e.g., scheduled simulation)
+
+ - Manually (triggered by an admin/user)
+
+ - Randomly (to simulate delivery unpredictability)
+
+### 5. Reprocessing Backlogged Orders
+After restock, the system checks for any waiting orders. If stock is now sufficient:
+ 
+ - Orders are retried
+
+ - Upon success, marked as fulfilled and removed from the backlog
+
+### 6. Missing Stock Report
+At any time, the system can provide a report showing:
+
+ - Items with current stock shortages
+
+ - Number of blocked orders per item
+
+ - Quantity needed to fulfill all delayed orders
+
+### 7. Admin Controls (Optional)
+For testing and simulation purposes, the following can be supported:
+
+ - Trigger restock manually
+
+ - View current order queue
+
+ - View stock levels
+
+ - View backlog status
 
 ## Tech Stack
 
